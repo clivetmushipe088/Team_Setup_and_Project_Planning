@@ -22,6 +22,14 @@ The project covers backend data processing, database management and frontend dev
 
 > This is a solo project, so there are no other collaborators to invite.
 
+## System architecture
+
+![System architecture](docs/architecture/system_architecture.png)
+
+Diagram link (draw.io): [open the diagram](https://app.diagrams.net/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fclivetmushipe088%2FDatabase_Design_and_Implementation%2Fmain%2Fdocs%2Farchitecture%2Fsystem_architecture.drawio)
+
+The XML file goes through the ETL steps (parse, clean, categorize, load, export). The data is saved in SQLite and summarized into `dashboard.json`. The dashboard reads that JSON through a simple web server, or the FastAPI endpoints (bonus).
+
 ## Project structure
 
 ```

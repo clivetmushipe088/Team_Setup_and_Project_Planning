@@ -30,10 +30,9 @@ The XML file goes through the ETL steps (parse, clean, categorize, load, export)
 
 ## Scrum board
 
-Board link: [MoMo SMS Analytics Scrum Board](https://github.com/users/clivetmushipe088/projects/PROJECT_NUMBER)
-<!-- TODO: replace PROJECT_NUMBER with the real number from the board URL -->
+Board link: [MoMo SMS Analytics Scrum Board](https://github.com/users/clivetmushipe088/projects/2)
 
-Columns: Todo, In Progress, Done. How the board was set up: [docs/scrum_board_setup.md](docs/scrum_board_setup.md)
+Columns: Todo, In Progress, Done.
 
 ## Project structure
 

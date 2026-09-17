@@ -30,6 +30,13 @@ Diagram link (draw.io): [open the diagram](https://app.diagrams.net/#Uhttps%3A%2
 
 The XML file goes through the ETL steps (parse, clean, categorize, load, export). The data is saved in SQLite and summarized into `dashboard.json`. The dashboard reads that JSON through a simple web server, or the FastAPI endpoints (bonus).
 
+## Scrum board
+
+Board link: [MoMo SMS Analytics Scrum Board](https://github.com/users/clivetmushipe088/projects/PROJECT_NUMBER)
+<!-- TODO: replace PROJECT_NUMBER with the real number from the board URL -->
+
+Columns: Todo, In Progress, Done. How the board was set up: [docs/scrum_board_setup.md](docs/scrum_board_setup.md)
+
 ## Project structure
 
 ```
@@ -57,6 +64,15 @@ scripts/run_etl.sh          # run the ETL (put momo.xml in data/raw/ first)
 scripts/serve_frontend.sh   # open http://localhost:8000
 python3 -m pytest           # run the tests
 ```
+
+## Tech stack
+
+- Python (ElementTree/lxml, python-dateutil)
+- SQLite
+- FastAPI (bonus)
+- HTML, CSS, JavaScript
+- pytest
+- GitHub Projects and draw.io
 
 ## Status
 

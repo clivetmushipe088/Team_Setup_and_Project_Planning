@@ -22,6 +22,34 @@ The project covers backend data processing, database management and frontend dev
 
 > This is a solo project, so there are no other collaborators to invite.
 
+## Project structure
+
+```
+.
+├── README.md
+├── .env.example
+├── requirements.txt
+├── index.html              # dashboard page
+├── web/                    # styles.css, chart_handler.js, assets/
+├── data/
+│   ├── raw/                # momo.xml goes here (git-ignored)
+│   ├── processed/          # dashboard.json
+│   └── logs/               # etl.log, dead_letter/
+├── etl/                    # parse -> clean -> categorize -> load -> export
+├── api/                    # FastAPI app (bonus)
+├── scripts/                # run_etl.sh, export_json.sh, serve_frontend.sh
+└── tests/                  # unit tests
+```
+
+## Getting started
+
+```bash
+pip install -r requirements.txt
+scripts/run_etl.sh          # run the ETL (put momo.xml in data/raw/ first)
+scripts/serve_frontend.sh   # open http://localhost:8000
+python3 -m pytest           # run the tests
+```
+
 ## Status
 
 Week 1: setting up the repository and planning the project.

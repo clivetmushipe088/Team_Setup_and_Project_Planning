@@ -16,11 +16,9 @@ The project covers backend data processing, database management and frontend dev
 
 ## Team members
 
-| Name | GitHub | Responsibilities |
-|------|--------|------------------|
-| Clive Tanaka Mushipe | [@clivetmushipe088](https://github.com/clivetmushipe088) | ETL pipeline, database, frontend, documentation |
-
-> This is a solo project, so there are no other collaborators to invite.
+| Name | Email | Responsibilities |
+|------|-------|------------------|
+| Clive Tanaka Mushipe | c.mushipe@alustudent.com | ETL pipeline, database, frontend, documentation |
 
 ## System architecture
 

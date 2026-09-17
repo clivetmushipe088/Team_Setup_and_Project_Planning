@@ -61,16 +61,3 @@ scripts/run_etl.sh          # run the ETL (put momo.xml in data/raw/ first)
 scripts/serve_frontend.sh   # open http://localhost:8000
 python3 -m pytest           # run the tests
 ```
-
-## Tech stack
-
-- Python (ElementTree/lxml, python-dateutil)
-- SQLite
-- FastAPI (bonus)
-- HTML, CSS, JavaScript
-- pytest
-- GitHub Projects and draw.io
-
-## Status
-
-Week 1: setting up the repository and planning the project.

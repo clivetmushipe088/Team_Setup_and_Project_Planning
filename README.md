@@ -9,10 +9,15 @@ MoMo SMS Analytics is a full-stack application that turns raw MTN Mobile Money (
 1. **Processes** an XML export of MoMo SMS messages.
 2. **Cleans and normalizes** amounts, dates and phone numbers.
 3. **Categorizes** each message into a transaction type (incoming money, payments to code holders, transfers to mobile numbers, bank deposits, airtime and bill payments, agent withdrawals, and more).
-4. **Stores** the cleaned transactions in a relational SQLite database.
+4. **Stores** the cleaned transactions in a relational MySQL database.
 5. **Visualizes** the data in a web dashboard with charts and tables.
 
 The project covers backend data processing, database management and frontend development.
+
+> **Current scope.** The source of this project is deliberately **Python and SQL
+> only**. The dashboard is not hand-written HTML/CSS/JS — it is *generated* from
+> the database by a script in `scripts/build/`, the same way the ERD is. See
+> [Dashboard](#dashboard) below.
 
 ## Team members
 
@@ -26,7 +31,10 @@ The project covers backend data processing, database management and frontend dev
 
 Diagram link (draw.io): [open the diagram](https://app.diagrams.net/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fclivetmushipe088%2FDatabase_Design_and_Implementation%2Fmain%2Fdocs%2Farchitecture%2Fsystem_architecture.drawio)
 
-The XML file goes through the ETL steps (parse, clean, categorize, load, export). The data is saved in SQLite and summarized into `dashboard.json`. The dashboard reads that JSON through a simple web server, or the FastAPI endpoints (bonus).
+The XML file goes through the ETL steps (parse, clean, categorize, load, export). The data is saved in MySQL and summarized into `dashboard.json`. The dashboard reads that JSON through a simple web server, or the FastAPI endpoints (bonus).
+
+> The architecture diagram above still shows SQLite, from the Week 1 scaffold.
+> It is redrawn when the ETL is wired to MySQL.
 
 ## Scrum board
 
@@ -41,8 +49,6 @@ Columns: Todo, In Progress, Done.
 ├── README.md
 ├── .env.example
 ├── requirements.txt
-├── index.html              # dashboard page
-├── web/                    # styles.css, chart_handler.js, assets/
 ├── data/
 │   ├── raw/                # momo.xml goes here (git-ignored)
 │   ├── processed/          # dashboard.json
@@ -50,7 +56,7 @@ Columns: Todo, In Progress, Done.
 ├── docs/                   # architecture diagram, ERD
 ├── etl/                    # parse -> clean -> categorize -> load -> export
 ├── api/                    # FastAPI app (bonus)
-├── scripts/                # run_etl.sh, export_json.sh, serve_frontend.sh
+├── scripts/
 │   └── build/              # regenerates the ERD and other docs
 └── tests/                  # unit tests
 ```
@@ -144,11 +150,58 @@ definition at the top of that script, so the three cannot drift apart.
 
 ---
 
+## Dashboard
+
+There is no hand-written frontend in this repository, and that is deliberate.
+
+The Week 1 scaffold had an `index.html`, a `chart_handler.js` and a
+`styles.css` — 824 bytes between them, none of it doing anything beyond a
+`console.log`. Three languages and three files to maintain, for a page that
+could not render until the database existed.
+
+Instead the dashboard is **generated**, the same way the ERD is:
+
+```
+database  ──>  scripts/build/make_dashboard.py  ──>  data/processed/dashboard.html
+```
+
+One self-contained HTML file with its CSS and chart data inlined, written by a
+Python script that queries the database directly. The benefits are the ones that
+matter for a project this size:
+
+- **The source stays Python and SQL.** No HTML, CSS or JavaScript is maintained
+  by hand, so there is nothing to keep in sync with the schema.
+- **It cannot go stale.** The ERD already works this way — regenerate and the
+  output matches the schema by construction.
+- **No web server needed.** A single file opens straight in a browser.
+
+`.gitattributes` marks the generated output `linguist-generated`, so committed
+artefacts do not misrepresent the repository's language breakdown on GitHub.
+
+> **Status:** not built yet. It comes after the ETL can populate the database —
+> there is no point rendering a chart that has nothing to plot.
+
+---
+
 ## Getting started
 
 ```bash
 pip install -r requirements.txt
-scripts/run_etl.sh          # run the ETL (put momo.xml in data/raw/ first)
-scripts/serve_frontend.sh   # open http://localhost:8000
 python3 -m pytest           # run the tests
 ```
+
+A 25-record sample dataset is committed at
+[`data/raw/modified_sms_v2.xml`](data/raw/modified_sms_v2.xml), so the schema and
+ETL can be run without sourcing the full export separately.
+
+### What is not wired up yet
+
+| Component | State |
+|---|---|
+| MySQL schema | complete |
+| `etl/` pipeline | scaffolding — `python3 etl/run.py` does not populate the database yet |
+| `api/` endpoints | scaffolding — return empty responses |
+| Dashboard | not built — will be generated, see [Dashboard](#dashboard) |
+
+Next milestone: wire `parse → clean → categorize → load → export` into the
+schema so the ETL can ingest the sample dataset.

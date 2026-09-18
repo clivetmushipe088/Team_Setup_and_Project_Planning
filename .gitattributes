@@ -1,0 +1,19 @@
+# Tell GitHub Linguist which committed files are build output rather than
+# hand-written source. Without this, generated artefacts show up in the
+# repository language bar and misrepresent what the project is actually
+# written in.
+#
+# The source of this project is Python and SQL. Everything below is produced
+# by a script in scripts/build/ and is committed only so it can be viewed
+# without running the build.
+
+docs/erd_diagram.svg              linguist-generated=true
+docs/erd_diagram.drawio           linguist-generated=true
+docs/database_design_document.html linguist-generated=true
+
+# The dashboard is emitted by scripts/build/make_dashboard.py, not maintained
+# by hand. See "Dashboard" in the README.
+data/processed/*.html             linguist-generated=true
+
+# Course-supplied sample data, not our code.
+data/raw/modified_sms_v2.xml      linguist-vendored=true

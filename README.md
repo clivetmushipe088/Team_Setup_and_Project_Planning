@@ -49,6 +49,7 @@ Columns: Todo, In Progress, Done.
 ├── README.md
 ├── .env.example
 ├── requirements.txt
+├── database/               # MySQL schema, queries, CRUD and rule tests
 ├── data/
 │   ├── raw/                # momo.xml goes here (git-ignored)
 │   ├── processed/          # dashboard.json
@@ -150,6 +151,111 @@ definition at the top of that script, so the three cannot drift apart.
 
 ---
 
+## Setup
+
+```bash
+# Build the schema and load seed data (drops and recreates momo_sms_db)
+mysql -u root -p < database/database_setup.sql
+
+# Run the demonstration queries
+mysql -u root -p --table < database/sample_queries.sql
+
+# Run the CRUD tests (restores the baseline when finished)
+mysql -u root -p --table < database/crud_tests.sql
+
+# Run the security rule tests
+# --force is REQUIRED: every numbered statement is designed to fail, and
+# without it the client stops at the first rejection
+mysql -u root -p --table --force < database/security_rules_demo.sql
+```
+
+The setup script is idempotent — it drops and recreates the database, so it is
+safe to re-run.
+
+| Object | Count |
+|---|---|
+| Base tables | 7 |
+| Views | 3 |
+| Foreign keys | 6 |
+| CHECK constraints | 13 |
+| Triggers | 5 |
+| Indexes | 23 (incl. one InnoDB FULLTEXT) |
+
+### Seed data
+
+| Table | Rows |
+|---|---|
+| `transaction_categories` | 10 |
+| `users` | 27 |
+| `tags` | 10 |
+| `transactions` | 32 |
+| `transaction_participants` | 64 |
+| `transaction_tags` | 28 |
+| `system_logs` | 18 |
+
+25 of the 32 transactions are derived from the course dataset at
+[`data/raw/modified_sms_v2.xml`](data/raw/modified_sms_v2.xml) — real amounts,
+dates, phone numbers, merchant codes and SMS bodies. The remaining 7 are
+synthetic and labelled as such in the script, covering the five categories the
+sample does not exercise (`CASH_IN`, `CASH_OUT`, `BANK_DEPOSIT`,
+`UTILITY_PAYMENT`, `INTERNATIONAL_IN`, `REVERSAL`) so every category and every
+constraint keeps test coverage. No real customer data is in this repository.
+
+## Security and accuracy rules
+
+Thirteen rules are enforced by the engine rather than by convention. A
+documented rule is a suggestion; an enforced rule is a guarantee.
+
+| # | Rule | Mechanism | Why | Error |
+|---|---|---|---|---|
+| 1 | No duplicate SMS | `UNIQUE(sms_hash)` | Makes re-running the ETL idempotent instead of double-counting revenue | `1062` |
+| 2–3 | Amount must be > 0 | `CHECK` | A parser bug storing 0 or a negative silently corrupts every total | `3819` |
+| 4 | Valid MSISDN format | `CHECK ... REGEXP` | Unnormalised numbers create duplicate customers. Applies only when a number is present | `3819` |
+| 5 | No orphan transactions | `FOREIGN KEY` | A transaction with no valid category is invisible to every report | `1452` |
+| 6 | Lookup rows protected | `ON DELETE RESTRICT` | Financial history must never be orphaned | `1451` |
+| 7 | No self-transfers | `TRIGGER` | Wash-trading pattern; spans two rows so `CHECK` cannot express it | `1644` |
+| 8 | No future-dated rows | `TRIGGER` | Timezone bugs and tampering; `NOW()` is ineligible for `CHECK` | `1644` |
+| 9 | One sender per transaction | `UNIQUE(transaction_id, role)` | Stops a parser bug attaching three senders | `1062` |
+| 10 | Confidence within [0,1] | `CHECK` | A score above 1.0 breaks every weighted calculation | `3819` |
+| 11 | Mandatory audit trail | `AFTER UPDATE TRIGGER` | Amount changes are logged whether the editor wants it or not | — |
+| 12 | Phone-number masking | `VIEW v_transaction_summary` | PII exposure becomes impossible by construction, not by policy | — |
+| 13 | Least privilege | `GRANT` | `momo_app` cannot `DELETE` or `DROP`; bounds SQL-injection blast radius | `1142` |
+
+Every rule is demonstrated against the live engine in
+[`database/security_rules_demo.sql`](database/security_rules_demo.sql), with
+captured output in [`docs/screenshots/`](docs/screenshots/).
+
+Rules 7 and 8 are triggers rather than CHECK constraints for a reason worth
+stating: rule 7 spans two rows, and rule 8 needs `NOW()`, which is
+non-deterministic. A CHECK constraint can do neither.
+
+### Normalisation before validation
+
+Rule 4 would reject the course dataset outright — it stores numbers as
+`0781234567`, not E.164. Rather than relax the constraint, a `BEFORE INSERT`
+trigger rewrites local numbers to `+250…` first. MySQL evaluates `BEFORE INSERT`
+triggers *before* CHECK constraints, so the constraint sees the normalised
+value:
+
+```sql
+INSERT INTO users (party_ref, phone_number, full_name, user_type)
+VALUES ('+250781234567', '0781234567', 'Alice', 'customer');
+-- stored as +250781234567
+```
+
+The strict guarantee survives, raw source data loads without preprocessing, and
+one subscriber cannot be stored twice under two spellings.
+
+## Views
+
+| View | Purpose |
+|---|---|
+| `v_transaction_summary` | Privacy-safe ledger — phone numbers masked to `+250788****045`, falling back to `party_ref` for merchant tills that have no number |
+| `v_category_totals` | Per-category aggregates |
+| `v_daily_summary` | Daily volume and fees split by credit/debit, for the dashboard time series |
+
+---
+
 ## Dashboard
 
 There is no hand-written frontend in this repository, and that is deliberate.
@@ -186,6 +292,10 @@ artefacts do not misrepresent the repository's language breakdown on GitHub.
 ## Getting started
 
 ```bash
+# 1. Database — see Setup above for the full set of scripts
+mysql -u root -p < database/database_setup.sql
+
+# 2. Python side
 pip install -r requirements.txt
 python3 -m pytest           # run the tests
 ```
@@ -198,9 +308,10 @@ ETL can be run without sourcing the full export separately.
 
 | Component | State |
 |---|---|
-| MySQL schema | complete |
+| MySQL schema | complete — constraints, indexes, triggers, views, seed data |
+| Sample queries, CRUD and rule tests | complete, with captured output |
 | `etl/` pipeline | scaffolding — `python3 etl/run.py` does not populate the database yet |
-| `api/` endpoints | scaffolding — return empty responses |
+| `api/` endpoints | scaffolding — `api/db.py` connects to MySQL, but the routes return empty responses |
 | Dashboard | not built — will be generated, see [Dashboard](#dashboard) |
 
 Next milestone: wire `parse → clean → categorize → load → export` into the

@@ -1,0 +1,77 @@
+{
+  "transaction_id": 2,
+  "reference": "TXN002",
+  "category": {
+    "category_id": 3,
+    "code": "PAYMENT_MERCHANT",
+    "name": "Merchant Payment",
+    "direction": "debit",
+    "description": "Payment to a registered MoMo merchant till or code holder.",
+    "is_active": true
+  },
+  "amounts": {
+    "principal": "2000.00",
+    "fee": "0.00",
+    "balance_after": "13000.00",
+    "total": "2000.00",
+    "currency": "RWF"
+  },
+  "transaction_date": "2024-01-04T10:30:00+02:00",
+  "status": "completed",
+  "channel": "sms",
+  "notes": null,
+  "participants": [
+    {
+      "role": "sender",
+      "user_id": 2,
+      "party_ref": "+250789876543",
+      "full_name": "Account Owner",
+      "masked_ref": "+250789****543",
+      "has_msisdn": true,
+      "user_type": "customer",
+      "party_label": "+250789876543"
+    },
+    {
+      "role": "receiver",
+      "user_id": 3,
+      "party_ref": "MTN:MoMoPay:Kigali_Mart",
+      "full_name": "Kigali Mart",
+      "masked_ref": "MTN:MoMoPay:Kigali_Mart",
+      "has_msisdn": false,
+      "user_type": "merchant",
+      "party_label": "MTN:MoMoPay:Kigali_Mart"
+    }
+  ],
+  "tags": [
+    {
+      "tag_id": 10,
+      "name": "merchant_till",
+      "type": "analytics",
+      "description": "Paid to a MoMoPay merchant till rather than a person.",
+      "confidence": "1.00",
+      "tagged_by": "etl",
+      "tagged_at": "2026-09-18T11:03:28+02:00"
+    }
+  ],
+  "source": {
+    "raw_sms_body": "Your payment of 2000 RWF to Kigali Mart was successful. TxnId: TXN002",
+    "sms_hash": "193c87b0f1dd2ddfcf6bafb98b0f4cb56a8c8a774262896aaef194c424d491eb",
+    "channel": "sms",
+    "processed_at": "2026-09-18T11:03:28+02:00"
+  },
+  "processing_log": [
+    {
+      "log_id": 11,
+      "transaction_id": 2,
+      "stage": "load",
+      "event_type": "DB_INSERT_OK",
+      "level": "INFO",
+      "message": "Inserted merchant payment; receiver had no MSISDN, stored by party_ref.",
+      "source_file": "data/raw/modified_sms_v2.xml",
+      "record_ref": "TXN002",
+      "records_affected": 3,
+      "ip_address": "127.0.0.1",
+      "created_at": "2026-09-18T11:03:28+02:00"
+    }
+  ]
+}

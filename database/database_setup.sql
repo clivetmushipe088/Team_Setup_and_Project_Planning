@@ -602,8 +602,7 @@ DELIMITER $$
 -- preprocessing.
 --
 -- BEFORE INSERT triggers run before CHECK constraints are evaluated in MySQL,
--- so the value the constraint sees is the normalised one. This ordering is
--- verified by the test in Part 2's PART.md.
+-- so the value the constraint sees is the normalised one.
 -- -----------------------------------------------------------------------------
 CREATE TRIGGER trg_users_normalise_input
 BEFORE INSERT ON users
@@ -803,9 +802,10 @@ GROUP BY DATE(t.transaction_date), c.direction;
 -- were ever compromised through SQL injection, the blast radius is bounded by
 -- these grants.
 --
--- WARNING: these are development placeholders. Replace them and move them into
--- .env before any real deployment. They are committed here only so the script
--- runs end to end as coursework.
+-- SECURITY NOTE: the passwords below are development placeholders, committed
+-- only so this script runs end to end as coursework. A real deployment reads
+-- them from the environment (see .env.example) and never stores them in
+-- version control.
 -- =============================================================================
 
 DROP USER IF EXISTS 'momo_app'@'localhost';

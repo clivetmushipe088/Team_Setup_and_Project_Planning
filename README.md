@@ -15,7 +15,7 @@ MoMo SMS Analytics is a full-stack application that turns raw MTN Mobile Money (
 The project covers backend data processing, database management and frontend development.
 
 > **Current scope.** The source of this project is deliberately **Python and SQL
-> only**. The dashboard is not hand-written HTML/CSS/JS — it is *generated* from
+> only**. The dashboard is not hand-written HTML/CSS/JS. It is *generated* from
 > the database by a script in `scripts/build/`, the same way the ERD is. See
 > [Dashboard](#dashboard) below.
 
@@ -31,10 +31,27 @@ The project covers backend data processing, database management and frontend dev
 
 Diagram link (draw.io): [open the diagram](https://app.diagrams.net/#Uhttps%3A%2F%2Fraw.githubusercontent.com%2Fclivetmushipe088%2FDatabase_Design_and_Implementation%2Fmain%2Fdocs%2Farchitecture%2Fsystem_architecture.drawio)
 
-The XML file goes through the ETL steps (parse, clean, categorize, load, export). The data is saved in MySQL and summarized into `dashboard.json`. The dashboard reads that JSON through a simple web server, or the FastAPI endpoints (bonus).
+The XML export goes through the ETL steps (parse, clean and normalise,
+categorise, load) and lands in MySQL. Parse failures are recorded in
+`system_logs` rather than discarded, because a message that never became a
+transaction is exactly the record needed to debug the parser.
 
-> The architecture diagram above still shows SQLite, from the Week 1 scaffold.
-> It is redrawn when the ETL is wired to MySQL.
+Reporting views sit on top of the tables: `v_transaction_summary` masks phone
+numbers, `v_category_totals` and `v_daily_summary` feed the charts. The
+dashboard is a single self-contained HTML file generated from those views by a
+Python script. There is no web server and no hand-written frontend. The
+FastAPI endpoints are a bonus and read through the least-privilege `momo_app`
+account.
+
+The lower band shows the build-time scripts. Every diagram, screenshot, JSON
+example and the design document itself is generated from the database or from a
+single definition, so none of them can drift out of date.
+
+Regenerate with:
+
+```bash
+python3 scripts/build/make_architecture.py
+```
 
 ## Scrum board
 
@@ -59,7 +76,7 @@ Columns: Todo, In Progress, Done.
 ├── etl/                    # parse -> clean -> categorize -> load -> export
 ├── api/                    # FastAPI app (bonus)
 ├── scripts/
-│   └── build/              # regenerates the ERD and other docs
+│   └── build/              # regenerates the diagrams, screenshots, JSON and PDF
 └── tests/                  # unit tests
 ```
 
@@ -70,6 +87,11 @@ Columns: Todo, In Progress, Done.
 The database is the foundation the ETL pipeline loads into and the dashboard
 reads from. It is implemented in MySQL 8.0+ (InnoDB, utf8mb4).
 
+**Full write-up:** [Database Design Document (PDF)](docs/database_design_document.pdf)
+29 pages covering the ERD, design rationale, a complete data dictionary
+generated from `information_schema`, every sample query with its real output,
+and all thirteen security rules demonstrated against a live database.
+
 ## Entity Relationship Diagram
 
 ![ERD](docs/erd_diagram.png)
@@ -79,13 +101,13 @@ Editable source: [`docs/erd_diagram.drawio`](docs/erd_diagram.drawio) (opens in
 
 ## Schema overview
 
-Seven tables — four core entities, two junction tables and a lookup.
+Seven tables: four core entities, two junction tables and a lookup.
 
 | Table | Role | Purpose |
 |---|---|---|
 | `users` | Entity | Every party in a transaction: customers, merchants, agents, banks, the MTN system account |
 | `transaction_categories` | Lookup | The transaction taxonomy, seeded from `CATEGORIES` in [etl/config.py](etl/config.py) |
-| `transactions` | Entity | The fact table — one row per financial SMS |
+| `transactions` | Entity | The fact table, one row per financial SMS |
 | `transaction_participants` | **Junction** | Resolves `users` M:N `transactions`, qualified by role |
 | `tags` | Lookup | Analytics buckets, data-quality flags, spending themes |
 | `transaction_tags` | **Junction** | Resolves `transactions` M:N `tags`, with confidence and provenance |
@@ -106,7 +128,7 @@ A MoMo SMS does not describe a tidy pair of customers. An airtime purchase has
 no human counterparty; a bank deposit's counterparty is an institution; a failed
 message may name nobody. With `sender_id` and `receiver_id` columns, one of the
 two is perpetually NULL, and *"show me everything user X did"* becomes
-`WHERE sender_id = X OR receiver_id = X` — a predicate no single index can
+`WHERE sender_id = X OR receiver_id = X`, a predicate no single index can
 serve. The junction makes each participation one row, one index entry, one
 uniform query, and leaves room for a third role later without a migration.
 
@@ -125,7 +147,7 @@ A merchant till (`MTN:MoMoPay:Kigali_Mart`) and a service endpoint
 present use the local `07XXXXXXXX` form rather than E.164. A `users` table keyed
 on a mandatory, strictly-formatted phone number cannot store this data.
 
-So `users` is keyed on **`party_ref`** — a canonical identifier that is always
+So `users` is keyed on **`party_ref`**, a canonical identifier that is always
 present and unique, holding either the normalised MSISDN or the service code.
 `phone_number` becomes a *nullable* secondary attribute that must still be valid
 E.164 when it is present:
@@ -136,7 +158,7 @@ E.164 when it is present:
 | A merchant till | `MTN:MoMoPay:Kigali_Mart` | `NULL` | `merchant` |
 | Airtime service | `MTN:Airtime` | `NULL` | `system` |
 
-This keeps the accuracy guarantee — a phone number, if stored, is well-formed —
+This keeps the accuracy guarantee (a phone number, if stored, is well-formed)
 without making it impossible to record the half of the dataset that has no phone
 number. Local `07…` numbers are normalised to `+250…` on the way in, so the same
 subscriber cannot be stored twice under two formats.
@@ -170,7 +192,7 @@ mysql -u root -p --table < database/crud_tests.sql
 mysql -u root -p --table --force < database/security_rules_demo.sql
 ```
 
-The setup script is idempotent — it drops and recreates the database, so it is
+The setup script is idempotent. It drops and recreates the database, so it is
 safe to re-run.
 
 | Object | Count |
@@ -195,7 +217,7 @@ safe to re-run.
 | `system_logs` | 18 |
 
 25 of the 32 transactions are derived from the course dataset at
-[`data/raw/modified_sms_v2.xml`](data/raw/modified_sms_v2.xml) — real amounts,
+[`data/raw/modified_sms_v2.xml`](data/raw/modified_sms_v2.xml): real amounts,
 dates, phone numbers, merchant codes and SMS bodies. The remaining 7 are
 synthetic and labelled as such in the script, covering the five categories the
 sample does not exercise (`CASH_IN`, `CASH_OUT`, `BANK_DEPOSIT`,
@@ -210,7 +232,7 @@ documented rule is a suggestion; an enforced rule is a guarantee.
 | # | Rule | Mechanism | Why | Error |
 |---|---|---|---|---|
 | 1 | No duplicate SMS | `UNIQUE(sms_hash)` | Makes re-running the ETL idempotent instead of double-counting revenue | `1062` |
-| 2–3 | Amount must be > 0 | `CHECK` | A parser bug storing 0 or a negative silently corrupts every total | `3819` |
+| 2, 3 | Amount must be > 0 | `CHECK` | A parser bug storing 0 or a negative silently corrupts every total | `3819` |
 | 4 | Valid MSISDN format | `CHECK ... REGEXP` | Unnormalised numbers create duplicate customers. Applies only when a number is present | `3819` |
 | 5 | No orphan transactions | `FOREIGN KEY` | A transaction with no valid category is invisible to every report | `1452` |
 | 6 | Lookup rows protected | `ON DELETE RESTRICT` | Financial history must never be orphaned | `1451` |
@@ -218,8 +240,8 @@ documented rule is a suggestion; an enforced rule is a guarantee.
 | 8 | No future-dated rows | `TRIGGER` | Timezone bugs and tampering; `NOW()` is ineligible for `CHECK` | `1644` |
 | 9 | One sender per transaction | `UNIQUE(transaction_id, role)` | Stops a parser bug attaching three senders | `1062` |
 | 10 | Confidence within [0,1] | `CHECK` | A score above 1.0 breaks every weighted calculation | `3819` |
-| 11 | Mandatory audit trail | `AFTER UPDATE TRIGGER` | Amount changes are logged whether the editor wants it or not | — |
-| 12 | Phone-number masking | `VIEW v_transaction_summary` | PII exposure becomes impossible by construction, not by policy | — |
+| 11 | Mandatory audit trail | `AFTER UPDATE TRIGGER` | Amount changes are logged whether the editor wants it or not | n/a |
+| 12 | Phone-number masking | `VIEW v_transaction_summary` | PII exposure becomes impossible by construction, not by policy | n/a |
 | 13 | Least privilege | `GRANT` | `momo_app` cannot `DELETE` or `DROP`; bounds SQL-injection blast radius | `1142` |
 
 Every rule is demonstrated against the live engine in
@@ -232,7 +254,7 @@ non-deterministic. A CHECK constraint can do neither.
 
 ### Normalisation before validation
 
-Rule 4 would reject the course dataset outright — it stores numbers as
+Rule 4 would reject the course dataset outright, because it stores numbers as
 `0781234567`, not E.164. Rather than relax the constraint, a `BEFORE INSERT`
 trigger rewrites local numbers to `+250…` first. MySQL evaluates `BEFORE INSERT`
 triggers *before* CHECK constraints, so the constraint sees the normalised
@@ -251,7 +273,7 @@ one subscriber cannot be stored twice under two spellings.
 
 | View | Purpose |
 |---|---|
-| `v_transaction_summary` | Privacy-safe ledger — phone numbers masked to `+250788****045`, falling back to `party_ref` for merchant tills that have no number |
+| `v_transaction_summary` | Privacy-safe ledger. Phone numbers masked to `+250788****045`, falling back to `party_ref` for merchant tills that have no number |
 | `v_category_totals` | Per-category aggregates |
 | `v_daily_summary` | Daily volume and fees split by credit/debit, for the dashboard time series |
 
@@ -264,9 +286,9 @@ one subscriber cannot be stored twice under two spellings.
 is generated by querying the live database, so they are genuine serialisations
 rather than hand-written approximations that drift from the schema.
 
-- [`examples/complete_transaction.json`](examples/complete_transaction.json) —
+- [`examples/complete_transaction.json`](examples/complete_transaction.json):
   the complex nested object: one response drawing on all seven tables.
-- [`docs/sql_to_json_mapping.md`](docs/sql_to_json_mapping.md) — the full
+- [`docs/sql_to_json_mapping.md`](docs/sql_to_json_mapping.md), the full
   column-by-column mapping.
 
 ### Type conversion
@@ -281,7 +303,7 @@ rather than hand-written approximations that drift from the schema.
 ### Structural decisions
 
 **Foreign keys become objects, not ids.** `category_id` never appears in a
-response — the nested `category` object replaces it, so a client renders a
+response. The nested `category` object replaces it, so a client renders a
 transaction from one request instead of two.
 
 **Junction tables disappear, but their attributes survive.** Neither junction is
@@ -291,7 +313,7 @@ and the attributes stored *on* the relationship travel inside those items:
 
 That last point is the one worth being able to explain: `confidence` belongs to
 neither the transaction nor the tag. It exists only because the two are linked.
-That is exactly why the relationship needs its own table in SQL — and its own
+That is exactly why the relationship needs its own table in SQL, and its own
 position in the JSON.
 
 ### Parties with no phone number
@@ -309,7 +331,7 @@ not `phone_number`, because for a merchant till it holds a code:
 
 A field whose name lies about its contents is worse than a slightly longer name,
 and the naming matches the `sender_ref_masked` / `receiver_ref_masked` columns
-of `v_transaction_summary` — so the API and the database agree on what an
+of `v_transaction_summary`, so the API and the database agree on what an
 unprivileged caller may see. A till code identifies a shop rather than a person,
 so falling back to it is safe rather than a leak.
 
@@ -319,7 +341,7 @@ so falling back to it is safe rather than a leak.
 python3 scripts/build/make_json.py
 ```
 
-Requires the database to exist — that dependency is deliberate.
+Requires the database to exist. That dependency is deliberate.
 
 ---
 
@@ -328,7 +350,7 @@ Requires the database to exist — that dependency is deliberate.
 There is no hand-written frontend in this repository, and that is deliberate.
 
 The Week 1 scaffold had an `index.html`, a `chart_handler.js` and a
-`styles.css` — 824 bytes between them, none of it doing anything beyond a
+`styles.css`, 824 bytes between them, none of it doing anything beyond a
 `console.log`. Three languages and three files to maintain, for a page that
 could not render until the database existed.
 
@@ -344,22 +366,22 @@ matter for a project this size:
 
 - **The source stays Python and SQL.** No HTML, CSS or JavaScript is maintained
   by hand, so there is nothing to keep in sync with the schema.
-- **It cannot go stale.** The ERD already works this way — regenerate and the
+- **It cannot go stale.** The ERD already works this way: regenerate and the
   output matches the schema by construction.
 - **No web server needed.** A single file opens straight in a browser.
 
 `.gitattributes` marks the generated output `linguist-generated`, so committed
 artefacts do not misrepresent the repository's language breakdown on GitHub.
 
-> **Status:** not built yet. It comes after the ETL can populate the database —
-> there is no point rendering a chart that has nothing to plot.
+> **Status:** not built yet. It comes after the ETL can populate the database.
+> There is no point rendering a chart that has nothing to plot.
 
 ---
 
 ## Getting started
 
 ```bash
-# 1. Database — see Setup above for the full set of scripts
+# 1. Database. See Setup above for the full set of scripts
 mysql -u root -p < database/database_setup.sql
 
 # 2. Python side
@@ -375,12 +397,13 @@ ETL can be run without sourcing the full export separately.
 
 | Component | State |
 |---|---|
-| MySQL schema | complete — constraints, indexes, triggers, views, seed data |
+| MySQL schema | complete: constraints, indexes, triggers, views, seed data |
 | Sample queries, CRUD and rule tests | complete, with captured output |
 | JSON schemas and SQL→JSON mapping | complete, generated from the live database |
-| `etl/` pipeline | scaffolding — `python3 etl/run.py` does not populate the database yet |
-| `api/` endpoints | scaffolding — `api/db.py` connects to MySQL, but the routes return empty responses |
-| Dashboard | not built — will be generated, see [Dashboard](#dashboard) |
+| Design document (PDF) | complete |
+| `etl/` pipeline | scaffolding. `python3 etl/run.py` does not populate the database yet |
+| `api/` endpoints | scaffolding. `api/db.py` connects to MySQL, but the routes return empty responses |
+| Dashboard | not built, will be generated, see [Dashboard](#dashboard) |
 
 Next milestone: wire `parse → clean → categorize → load → export` into the
 schema so the ETL can ingest the sample dataset.

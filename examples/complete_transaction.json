@@ -50,14 +50,14 @@
       "description": "Paid to a MoMoPay merchant till rather than a person.",
       "confidence": "1.00",
       "tagged_by": "etl",
-      "tagged_at": "2026-09-18T11:03:28+02:00"
+      "tagged_at": "2026-09-18T16:06:24+02:00"
     }
   ],
   "source": {
     "raw_sms_body": "Your payment of 2000 RWF to Kigali Mart was successful. TxnId: TXN002",
     "sms_hash": "193c87b0f1dd2ddfcf6bafb98b0f4cb56a8c8a774262896aaef194c424d491eb",
     "channel": "sms",
-    "processed_at": "2026-09-18T11:03:28+02:00"
+    "processed_at": "2026-09-18T16:06:24+02:00"
   },
   "processing_log": [
     {
@@ -71,7 +71,7 @@
       "record_ref": "TXN002",
       "records_affected": 3,
       "ip_address": "127.0.0.1",
-      "created_at": "2026-09-18T11:03:28+02:00"
+      "created_at": "2026-09-18T16:06:24+02:00"
     }
   ]
 }

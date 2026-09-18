@@ -294,7 +294,7 @@ def build_svg():
 
     # title block
     p.append('<text x="50" y="46" font-size="26" font-weight="700" fill="#1A1F2B">'
-             'MoMo SMS Analytics &#8212; Entity Relationship Diagram</text>')
+             'MoMo SMS Analytics &#183; Entity Relationship Diagram</text>')
     p.append('<text x="50" y="72" font-size="13" fill="#5A6479">'
              'MySQL 8.0+ / InnoDB &#183; Crow&#8217;s-foot notation &#183; '
              'Clive Tanaka Mushipe &#183; Week 2</text>')

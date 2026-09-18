@@ -605,9 +605,9 @@
       "is_verified": true,
       "national_id": null,
       "account_status": "active",
-      "first_seen_at": "2026-09-18T11:03:28+02:00",
-      "created_at": "2026-09-18T11:03:28+02:00",
-      "updated_at": "2026-09-18T11:03:28+02:00"
+      "first_seen_at": "2026-09-18T16:06:24+02:00",
+      "created_at": "2026-09-18T16:06:24+02:00",
+      "updated_at": "2026-09-18T16:06:24+02:00"
     },
     "user_merchant_till": {
       "_description": "A merchant till. It has no MSISDN at all, which is why users is keyed on party_ref: a schema requiring a phone number could not store this row, and roughly a third of the parties in the dataset look like it.",
@@ -619,9 +619,9 @@
       "is_verified": false,
       "national_id": null,
       "account_status": "active",
-      "first_seen_at": "2026-09-18T11:03:28+02:00",
-      "created_at": "2026-09-18T11:03:28+02:00",
-      "updated_at": "2026-09-18T11:03:28+02:00"
+      "first_seen_at": "2026-09-18T16:06:24+02:00",
+      "created_at": "2026-09-18T16:06:24+02:00",
+      "updated_at": "2026-09-18T16:06:24+02:00"
     },
     "transaction_category": {
       "category_id": 1,
@@ -730,7 +730,7 @@
       "record_ref": "sms[12]",
       "records_affected": 1,
       "ip_address": "127.0.0.1",
-      "created_at": "2026-09-18T11:03:28+02:00",
+      "created_at": "2026-09-18T16:06:24+02:00",
       "_note": "transaction_id is null because this SMS failed during parsing and never became a transaction. The nullable FK is what makes this record storable at all."
     },
     "complete_transaction": {
@@ -787,14 +787,14 @@
             "description": "Paid to a MoMoPay merchant till rather than a person.",
             "confidence": "1.00",
             "tagged_by": "etl",
-            "tagged_at": "2026-09-18T11:03:28+02:00"
+            "tagged_at": "2026-09-18T16:06:24+02:00"
           }
         ],
         "source": {
           "raw_sms_body": "Your payment of 2000 RWF to Kigali Mart was successful. TxnId: TXN002",
           "sms_hash": "193c87b0f1dd2ddfcf6bafb98b0f4cb56a8c8a774262896aaef194c424d491eb",
           "channel": "sms",
-          "processed_at": "2026-09-18T11:03:28+02:00"
+          "processed_at": "2026-09-18T16:06:24+02:00"
         },
         "processing_log": [
           {
@@ -808,7 +808,7 @@
             "record_ref": "TXN002",
             "records_affected": 3,
             "ip_address": "127.0.0.1",
-            "created_at": "2026-09-18T11:03:28+02:00"
+            "created_at": "2026-09-18T16:06:24+02:00"
           }
         ]
       }
@@ -867,7 +867,7 @@
             "description": "Transaction amount at or above 20,000 RWF.",
             "confidence": "1.00",
             "tagged_by": "etl",
-            "tagged_at": "2026-09-18T11:03:28+02:00"
+            "tagged_at": "2026-09-18T16:06:24+02:00"
           },
           {
             "tag_id": 9,
@@ -876,7 +876,7 @@
             "description": "Transaction crossed a national border.",
             "confidence": "1.00",
             "tagged_by": "etl",
-            "tagged_at": "2026-09-18T11:03:28+02:00"
+            "tagged_at": "2026-09-18T16:06:24+02:00"
           },
           {
             "tag_id": 5,
@@ -885,14 +885,14 @@
             "description": "Parser confidence was low, or the value is unusual - a human should verify.",
             "confidence": "0.45",
             "tagged_by": "analyst",
-            "tagged_at": "2026-09-18T11:03:28+02:00"
+            "tagged_at": "2026-09-18T16:06:24+02:00"
           }
         ],
         "source": {
           "raw_sms_body": "International remittance of 250000 RWF received. TxnId: TXN905",
           "sms_hash": "2792afd8831b5b47e2f3b5efda1ae0c5967e0ad3fb53d5c3708ac2556c9ad8b5",
           "channel": "sms",
-          "processed_at": "2026-09-18T11:03:28+02:00"
+          "processed_at": "2026-09-18T16:06:24+02:00"
         },
         "processing_log": [
           {
@@ -906,7 +906,7 @@
             "record_ref": "TXN905",
             "records_affected": 1,
             "ip_address": "127.0.0.1",
-            "created_at": "2026-09-18T11:03:28+02:00"
+            "created_at": "2026-09-18T16:06:24+02:00"
           }
         ]
       }

@@ -1,6 +1,10 @@
 # --- Data (raw input and generated outputs stay local) ---
 data/raw/*
 !data/raw/.gitkeep
+# The 25-record course sample is small and needs to be in the repo so the
+# schema and ETL can be run and marked without a separate download.
+# The full MTN export stays local and is still ignored by the rule above.
+!data/raw/modified_sms_v2.xml
 data/processed/*.json
 data/db.sqlite3
 data/*.sqlite3-journal

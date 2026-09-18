@@ -5,14 +5,15 @@ schema definition, so the three can never drift apart.
 
 Crow's-foot notation. PK/FK/UK marked. Junction tables highlighted.
 """
-import html
 import subprocess
+import tempfile
 import xml.sax.saxutils as sx
 from pathlib import Path
 
-REPO = Path("/Users/mac/Desktop/Database_Design_and_Implementation")
+# Resolved from this file's location (scripts/build/), not hardcoded, so the
+# script works from any clone and from any working directory.
+REPO = Path(__file__).resolve().parents[2]
 DOCS = REPO / "docs"
-TMP = Path(__file__).parent
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 # ---------------------------------------------------------------------------
@@ -34,12 +35,14 @@ TABLES = [
         ("",   "is_active",     "BOOLEAN"),
         ("",   "created_at",    "DATETIME"),
     ]),
-    ("users", 40, 455, 390, "entity", [
+    ("users", 40, 440, 400, "entity", [
         ("PK", "user_id",        "INT UNSIGNED"),
-        ("",   "full_name",      "VARCHAR(120)"),
-        ("UK", "phone_number",   "VARCHAR(16)"),
+        ("UK", "party_ref",      "VARCHAR(64)"),
+        ("UK", "phone_number",   "VARCHAR(16) NULL"),
+        ("",   "full_name",      "VARCHAR(120) NULL"),
         ("",   "user_type",      "ENUM(customer/merchant/agent/bank/system)"),
-        ("",   "national_id",    "VARCHAR(32)  NULL"),
+        ("",   "is_verified",    "BOOLEAN"),
+        ("",   "national_id",    "VARCHAR(32) NULL"),
         ("",   "account_status", "ENUM(active/suspended/closed)"),
         ("",   "first_seen_at",  "DATETIME"),
         ("",   "created_at",     "DATETIME"),
@@ -66,6 +69,7 @@ TABLES = [
         ("",   "channel",          "ENUM(sms/ussd/app/api)"),
         ("",   "raw_sms_body",     "TEXT"),
         ("UK", "sms_hash",         "CHAR(64)"),
+        ("",   "notes",            "VARCHAR(500) NULL"),
         ("",   "processed_at",     "DATETIME"),
         ("",   "created_at",       "DATETIME"),
         ("",   "updated_at",       "DATETIME"),
@@ -84,15 +88,17 @@ TABLES = [
         ("",   "description", "VARCHAR(255) NULL"),
         ("",   "created_at",  "DATETIME"),
     ]),
-    ("system_logs", 1110, 900, 420, "entity", [
+    ("system_logs", 1110, 890, 420, "entity", [
         ("PK", "log_id",           "BIGINT UNSIGNED"),
         ("FK", "transaction_id",   "BIGINT UNSIGNED NULL"),
         ("",   "stage",            "ENUM(parse/clean/categorize/load/export/audit)"),
+        ("",   "event_type",       "VARCHAR(80)"),
         ("",   "log_level",        "ENUM(DEBUG/INFO/WARNING/ERROR/CRITICAL)"),
         ("",   "message",          "VARCHAR(500)"),
         ("",   "source_file",      "VARCHAR(255) NULL"),
         ("",   "record_ref",       "VARCHAR(100) NULL"),
         ("",   "records_affected", "INT UNSIGNED"),
+        ("",   "ip_address",       "VARCHAR(45) NULL"),
         ("",   "created_at",       "DATETIME"),
     ]),
 ]
@@ -488,18 +494,21 @@ def main():
     (DOCS / "erd_diagram.drawio").write_text(dio, encoding="utf-8")
     print(f"wrote erd_diagram.drawio ({len(dio)} bytes)")
 
-    # PNG via headless Chrome at 2x for a crisp print.
-    holder = TMP / "erd_holder.html"
-    holder.write_text(
-        f'<!DOCTYPE html><html><head><meta charset="utf-8">'
-        f'<style>html,body{{margin:0;padding:0;background:#fff;}}</style></head>'
-        f'<body>{svg}</body></html>', encoding="utf-8")
-    subprocess.run(
-        [CHROME, "--headless", "--disable-gpu", "--hide-scrollbars",
-         f"--screenshot={DOCS / 'erd_diagram.png'}",
-         f"--window-size={CANVAS_W},{CANVAS_H}",
-         "--force-device-scale-factor=2", holder.as_uri()],
-        check=True, capture_output=True)
+    # PNG via headless Chrome at 2x for a crisp print. The scratch HTML that
+    # wraps the SVG goes to a temp directory that is deleted on exit - writing
+    # it next to this script would leave a build artifact in the repo.
+    with tempfile.TemporaryDirectory(prefix="momo-erd-") as tmp:
+        holder = Path(tmp) / "erd_holder.html"
+        holder.write_text(
+            f'<!DOCTYPE html><html><head><meta charset="utf-8">'
+            f'<style>html,body{{margin:0;padding:0;background:#fff;}}</style></head>'
+            f'<body>{svg}</body></html>', encoding="utf-8")
+        subprocess.run(
+            [CHROME, "--headless", "--disable-gpu", "--hide-scrollbars",
+             f"--screenshot={DOCS / 'erd_diagram.png'}",
+             f"--window-size={CANVAS_W},{CANVAS_H}",
+             "--force-device-scale-factor=2", holder.as_uri()],
+            check=True, capture_output=True)
     print("wrote erd_diagram.png")
 
 

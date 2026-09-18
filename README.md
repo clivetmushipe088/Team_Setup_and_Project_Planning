@@ -102,6 +102,37 @@ two is perpetually NULL, and *"show me everything user X did"* becomes
 serve. The junction makes each participation one row, one index entry, one
 uniform query, and leaves room for a third role later without a migration.
 
+### Identifying parties that have no phone number
+
+The sample dataset in [`data/raw/modified_sms_v2.xml`](data/raw/) shows that not
+every counterparty is a phone subscriber:
+
+```xml
+<sms id="2" transaction_type="payment" amount="2000" sender="0789876543"
+     receiver="MTN:MoMoPay:Kigali_Mart" date="2024-01-04 10:30:00" .../>
+```
+
+A merchant till (`MTN:MoMoPay:Kigali_Mart`) and a service endpoint
+(`MTN:Airtime`) have no MSISDN at all, and the subscriber numbers that *are*
+present use the local `07XXXXXXXX` form rather than E.164. A `users` table keyed
+on a mandatory, strictly-formatted phone number cannot store this data.
+
+So `users` is keyed on **`party_ref`** — a canonical identifier that is always
+present and unique, holding either the normalised MSISDN or the service code.
+`phone_number` becomes a *nullable* secondary attribute that must still be valid
+E.164 when it is present:
+
+| Party | `party_ref` | `phone_number` | `user_type` |
+|---|---|---|---|
+| A customer | `+250789876543` | `+250789876543` | `customer` |
+| A merchant till | `MTN:MoMoPay:Kigali_Mart` | `NULL` | `merchant` |
+| Airtime service | `MTN:Airtime` | `NULL` | `system` |
+
+This keeps the accuracy guarantee — a phone number, if stored, is well-formed —
+without making it impossible to record the half of the dataset that has no phone
+number. Local `07…` numbers are normalised to `+250…` on the way in, so the same
+subscriber cannot be stored twice under two formats.
+
 ### Regenerating the diagram
 
 ```bash
